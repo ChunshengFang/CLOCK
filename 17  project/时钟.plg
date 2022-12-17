@@ -1,0 +1,20 @@
+<html>
+<body>
+<pre>
+<h1>礦ision Build Log</h1>
+<h2>Project:</h2>
+E:\单片机\时钟.uvproj
+Project File Date:  05/23/2018
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling 时钟.c...
+时钟.C(296): error C141: syntax error near '}'
+时钟.C(555): error C141: syntax error near '.'
+Target not created
+Build target 'Target 1'
+compiling 时钟.c...
+linking...
+Program Size: data=26.0 xdata=0 code=2195
+creating hex file from "时钟"...
+"时钟" - 0 Error(s), 0 Warning(s).

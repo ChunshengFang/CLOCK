@@ -1,0 +1,626 @@
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 1   
+
+
+C51 COMPILER V9.02, COMPILATION OF MODULE 时钟
+OBJECT MODULE PLACED IN 时钟.OBJ
+COMPILER INVOKED BY: E:\新建文件夹\C51\BIN\C51.EXE 时钟.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include<reg51.h>
+   2          #include <intrins.h> 
+   3          #include <stdio.h>
+   4          #define _NOP    _nop_();_nop_();_nop_();_nop_();
+   5          #define uchar unsigned char
+   6          #define uint unsigned int
+   7          #define keyinc 0xe7                    //定义键盘位置第四行第一列
+   8          #define keydec 0xd7                    //第四行第二列
+   9          #define flaginc 0xb7              //第四行第三列
+  10          #define flagdec 0x77              //第四行第四列        
+  11          uint year;
+  12          uchar s,hour,min,sec,week,mon,day,hour2=9,min2=2,sec2=0;
+  13          uchar flag=0;
+  14          uchar flag1=0;
+  15          uchar code table[]={'0','1','2','3','4','5','6','7','8','9',':','-'};
+  16          uchar code table1[]={'S','u','n','M','o','n','T','u','e','W','e','d','T','h','u','F','r','i','S','a','t'};
+  17          uchar code table2[]={"FCS "};
+  18          void delayus();
+  19          void display7();
+  20          void write_add(uchar address,uchar date);
+  21          uchar num;
+  22          sbit E=P1^0;     sbit rw=P1^1;   sbit dt=P1^2;    //定义LCD控制线
+  23          sbit sda=P1^6;   sbit scl=P1^7;                  //定义SDA和SCL信号
+  24          sbit ming=P3^7;   sbit change = P1^4;                               //定义蜂鸣器
+  25          
+  26          /**********延时函数**********/
+  27          delay(uint t)                   
+  28          {
+  29   1              uint i,j;
+  30   1              for(i=0;i<t;i++)
+  31   1              {
+  32   2                      for(j=0;j<120;j++)
+  33   2                      {;}
+  34   2              }
+  35   1              return i;
+  36   1      }
+  37          
+  38          void delayus()  
+  39          {
+  40   1              ;
+  41   1      }
+  42          
+  43          /***********写指令于lcd**********/
+  44          void write_com(uchar com)               
+  45          {
+  46   1              rw=0;
+  47   1              dt=0;
+  48   1              P0=com;
+  49   1              delay(5);
+  50   1              E=1;
+  51   1              delay(5);
+  52   1              E=0;    
+  53   1      }
+  54          
+  55          /***********写内容于lcd显示**********/
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 2   
+
+  56          void write_data(uchar date)             
+  57          {
+  58   1              dt=1;
+  59   1              P0=date;
+  60   1              delay(5);
+  61   1              E=1;
+  62   1              delay(5);
+  63   1              E=0;
+  64   1      }
+  65          /*****************写一个字节函数****************/
+  66          void write_byte(uchar date)     
+  67          {
+  68   1              uchar i,temp;
+  69   1              temp=date;
+  70   1              for(i=0;i<8;i++)
+  71   1              {
+  72   2                      temp=temp<<1;
+  73   2                      scl=0;
+  74   2                  delayus();
+  75   2                      sda=CY;
+  76   2                      delayus();
+  77   2                      scl=1;
+  78   2                      delayus();
+  79   2              }
+  80   1              scl=0;
+  81   1              delayus();
+  82   1              sda=1;
+  83   1              delayus();
+  84   1      }
+  85          
+  86          void welcome()
+  87          {
+  88   1          uchar num;
+  89   1              uchar code tab[]="NICE TO ME YOU";
+  90   1              uchar code tab1[]="208160117";
+  91   1              write_com(0x80);
+  92   1              rw=0;
+  93   1              E=0;
+  94   1              write_com(0x38);         //液晶设置不判忙模式
+  95   1              write_com(0x0c);         //开显示 不显示光标
+  96   1              write_com(0x06);         //当写一个字符是，地址指针加 1
+  97   1              write_com(0x01);         //显示清屏
+  98   1              write_com(0x80+0x10);    //将指令写入缓冲区
+  99   1           for(num=0;num<14;num++)
+ 100   1         {                  
+ 101   2          write_data(tab[num]);
+ 102   2          delay(10);
+ 103   2         }
+ 104   1          write_com(0x80+0x50); 
+ 105   1         for(num=0;num<9;num++)
+ 106   1         {
+ 107   2          write_data(tab1[num]);
+ 108   2          delay(10);
+ 109   2         }
+ 110   1         for(num=0;num<16;num++)
+ 111   1         {
+ 112   2          write_com(0x18);
+ 113   2          delay(300);
+ 114   2        } 
+ 115   1         delay(1500);
+ 116   1         write_com(0x01);
+ 117   1      }
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 3   
+
+ 118                          
+ 119          
+ 120          
+ 121           
+ 122          /*****************初始化****************/
+ 123          void init()                                         
+ 124          {
+ 125   1              rw=0;
+ 126   1              E=0;
+ 127   1              write_com(0x38);
+ 128   1              write_com(0x0c);
+ 129   1              write_com(0x06);
+ 130   1              write_com(0x01);
+ 131   1              write_com(0x80+0x10);
+ 132   1              welcome();
+ 133   1              
+ 134   1              sda=1;
+ 135   1              _NOP;
+ 136   1              scl=1;
+ 137   1              _NOP;   
+ 138   1              write_add(0x00,0x00);
+ 139   1              write_add(0x01,0x00);
+ 140   1              write_add(0x02,0x50);           //秒数53秒
+ 141   1              write_add(0x03,0x59);           //分59分
+ 142   1              write_add(0x04,0x08);           //小时8点
+ 143   1              write_add(0x05,0x25);           //日期25号
+ 144   1              write_add(0x06,0x05);           //星期五
+ 145   1              write_add(0x07,0x05);           //月份5月
+ 146   1              write_add(0x08,0x18);           //年份18年
+ 147   1      }
+ 148          /*****************显示函数****************/  
+ 149          void display()
+ 150          {       
+ 151   1              if(flag!=0)
+ 152   1              {
+ 153   2                      write_com(0x06);
+ 154   2              
+ 155   2                      switch(flag)
+ 156   2                      {
+ 157   3                              case 1: write_com(0x80+15);
+ 158   3                                      write_com(0x0f);delay(800);break;
+ 159   3                              case 2: write_com(0x80+12);
+ 160   3                                      write_com(0x0f);delay(800);break;
+ 161   3                              case 3: write_com(0x80+9);
+ 162   3                                      write_com(0x0f);delay(800);break;
+ 163   3                              case 4: write_com(0x80+0x40+14);
+ 164   3                                      write_com(0x0f);delay(800);break;                       
+ 165   3                              case 5: write_com(0x80+0x40+9);
+ 166   3                                      write_com(0x0f);delay(800);break;
+ 167   3                              case 6: write_com(0x80+0x40+6);
+ 168   3                                      write_com(0x0f);delay(800);break;
+ 169   3                              case 7: write_com(0x80+0x40+3);
+ 170   3                                      write_com(0x0f);delay(800);break;                                 //定义键盘可改变的数的位置
+ 171   3                              default:break;
+ 172   3                              
+ 173   3                      }
+ 174   2              }
+ 175   1              
+ 176   1              write_com(0x80+0x40);
+ 177   1              write_data(table[2]);                   //在第二行第0个位置显示table中编号为2的字符
+ 178   1              write_data(table[0]);                   //在下一位置显示编号为0的字符
+ 179   1              write_com(0x80+0x42);
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 4   
+
+ 180   1              write_data(table[year/16]);             //在第二行第2个位置显示年份整除16的整数在table中编号的字符
+ 181   1              write_data(table[year%16]);             //在下一位置显示余数在table中编号的字符
+ 182   1              write_data(table[11]);                  //在下一位置显示table中编号为11的字符
+ 183   1              write_data(table[(mon&0x1f)/16]);
+ 184   1              write_data(table[(mon&0x1f)%16]);
+ 185   1              write_data(table[11]);                       //在下一位置显示table中编号为11的字符
+ 186   1              write_data(table[(day&0x3f)/16]);
+ 187   1              write_data(table[(day&0x3f)%16]);
+ 188   1              write_com(0x80+0x4d);                    //定义星期显示的位置
+ 189   1              for(num=0;num<3;num++)
+ 190   1              {
+ 191   2                      write_data(table1[(week&0x07)*3+num]);  
+ 192   2              }
+ 193   1              write_com(0x80+0x08);
+ 194   1              write_data(table[(hour&0x3f)/16]);                      //显示在24范围内的小时整除16后的整数作为编号在table中的字符
+ 195   1              write_data(table[(hour&0x3f)%16]);                      //显示在24范围内的小时整除16后的余数作为编号在table中的字符
+ 196   1              write_data(table[10]);                                          //在下一位置显示table中编号为10的字符
+ 197   1              write_data(table[(min&0x7f)/16]);                       //显示在60范围内分钟整除16后的整数作为编号在table中的字符
+ 198   1              write_data(table[(min&0x7f)%16]);                       //显示在60范围内分钟整除16后的余数作为编号在table中的字符
+ 199   1              write_data(table[10]);                                          //在下一位置显示table中编号为10的字符
+ 200   1              write_data(table[(sec&0x7f)/16]);                       //显示在60范围内秒数整除16后的整数作为编号在table中的字符
+ 201   1              write_data(table[(sec&0x7f)%16]);                        //显示在60范围内秒数整除16后的余数作为编号在table中的字符
+ 202   1              write_com(0x80+0x00);
+ 203   1              write_data('T');
+ 204   1              write_data('I');
+ 205   1              write_data('M');
+ 206   1              write_data('E');        
+ 207   1              write_data(' ');
+ 208   1              write_data(' ');
+ 209   1              write_data(' ');
+ 210   1      
+ 211   1      }
+ 212          
+ 213          /*****************开始****************/
+ 214          void start()   
+ 215          {       
+ 216   1              sda=1;                                  //总线起始
+ 217   1              _NOP;
+ 218   1              _NOP;                                                                                                                                                       
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -            
+ 219   1              scl=1;
+ 220   1              _NOP;                                   //发送起始信号
+ 221   1              sda=0;
+ 222   1              _NOP;
+ 223   1      }
+ 224          
+ 225          /*****************停止****************/
+ 226          void stop()   
+ 227          {
+ 228   1              sda=0;                           //发送结束条件的信号序列
+ 229   1              _NOP;
+ 230   1              _NOP;
+ 231   1              scl=1;                           //发送结束条件的信号序列
+ 232   1              _NOP;
+ 233   1              sda=1;                           //发送总线结束信号
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 5   
+
+ 234   1              _NOP;
+ 235   1      }
+ 236          
+ 237          /*****************应答****************/
+ 238          void respons() 
+ 239          {
+ 240   1              uchar i;
+ 241   1              scl=1;
+ 242   1              delayus();
+ 243   1              while((sda==1)&&(i<250))i++;
+ 244   1              scl=0;
+ 245   1              delayus();
+ 246   1      }
+ 247          
+ 248          
+ 249          /*****************读一个字节函数****************/
+ 250          uchar read_byte() 
+ 251          {
+ 252   1              uchar i,k;
+ 253   1              scl=0;
+ 254   1              delayus();
+ 255   1              sda=1;                              //数据线准备输入数据，单片机端口输入前为1
+ 256   1              delayus();
+ 257   1              for(i=0;i<8;i++)
+ 258   1              {
+ 259   2                      scl=1;
+ 260   2                      delayus();      
+ 261   2                      k=(k<<1)|sda;
+ 262   2                      scl=0;                                  //时钟线为低电平，准备接收数据
+ 263   2                      delayus();      
+ 264   2              }
+ 265   1              return k;
+ 266   1      }
+ 267          
+ 268          /*****************往一个单元里写内容函数****************/
+ 269          void write_add(uchar address,uchar date) 
+ 270          {
+ 271   1              start();
+ 272   1              write_byte(0xa2);
+ 273   1              respons();
+ 274   1              write_byte(address);
+ 275   1              respons();
+ 276   1              write_byte(date);
+ 277   1              respons();
+ 278   1              stop();
+ 279   1      }
+ 280          
+ 281          /*****************读一个单元的内容****************/
+ 282          uchar read_add(uchar address) 
+ 283          {
+ 284   1              uchar date;
+ 285   1              start();
+ 286   1              write_byte(0xa2);
+ 287   1              respons();
+ 288   1              write_byte(address);
+ 289   1              respons();
+ 290   1              start();
+ 291   1              write_byte(0xa3);
+ 292   1              respons();
+ 293   1              date=read_byte();
+ 294   1              stop();
+ 295   1              return date; 
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 6   
+
+ 296   1      }
+ 297           
+ 298          /*****************将读出的数写入hour与min中****************/
+ 299          void read8563() 
+ 300          {
+ 301   1              sec=read_add(0x02);                      //将读出的数写入秒的寄存器地址02H中
+ 302   1              min=read_add(0x03);                      //将读出的数写入分的寄存器地址03H中
+ 303   1              hour=read_add(0x04);             //将读出的数写入小时的寄存器地址04H中
+ 304   1              day=read_add(0x05);                      //将读出的数写入天的寄存器地址05H中
+ 305   1              week=read_add(0x06);             //将读出的数写入星期的寄存器地址06H中
+ 306   1              mon=read_add(0x07);                      //将读出的数写入月份的寄存器地址07H中
+ 307   1              year=read_add(0x08);             //将读出的数写入年的寄存器地址08H中
+ 308   1      }
+ 309          
+ 310          /******************************************
+ 311                   液晶显示器显示闹钟模块
+ 312          ******************************************/
+ 313          
+ 314          void display7()
+ 315          {       
+ 316   1              if(flag!=0)
+ 317   1              {
+ 318   2                      write_com(0x06);
+ 319   2                      switch(flag)
+ 320   2                      {
+ 321   3                      case 1: write_com(0x80+0x40+6);
+ 322   3                                      write_com(0x0f);delay(800);break;
+ 323   3                      case 2: write_com(0x80+0x40+3);
+ 324   3                                      write_com(0x0f);delay(800);break;
+ 325   3                      case 3: write_com(0x80+0x40+0);
+ 326   3                                      write_com(0x0f);delay(800);break;
+ 327   3                      case 4: write_com(0x80+13);
+ 328   3                                      write_com(0x0f);delay(800);break;
+ 329   3                      case 5: write_com(0x80+8);
+ 330   3                                      write_com(0x0f);delay(800);break;
+ 331   3                      case 6: write_com(0x80+5);
+ 332   3                                      write_com(0x0f);delay(800);break;
+ 333   3                      case 7: write_com(0x80+2);
+ 334   3                                      write_com(0x0f);delay(800);break;
+ 335   3                      default:break;
+ 336   3                      }
+ 337   2              }
+ 338   1      
+ 339   1              write_com(0x80+0x00);
+ 340   1              write_data(' ');
+ 341   1              write_data('C');
+ 342   1              write_data('L');
+ 343   1              write_data('O');
+ 344   1              write_data('C');
+ 345   1              write_data('K');
+ 346   1              write_data(':');
+ 347   1          write_data(' ');    
+ 348   1              write_data(' ');
+ 349   1              write_data(' ');
+ 350   1              write_data(' ');
+ 351   1              write_data(' ');
+ 352   1              write_data(' ');
+ 353   1              write_data(' ');
+ 354   1              write_data(' ');
+ 355   1              write_data(' ');
+ 356   1              write_com(0x80+0x40);
+ 357   1              write_data(' ');
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 7   
+
+ 358   1              write_data(' ');
+ 359   1              write_data(table[0]);
+ 360   1              write_data(table[9]);
+ 361   1              write_data(':');
+ 362   1              write_data(table[0]);
+ 363   1              write_data(table[2]);
+ 364   1              write_data(':');
+ 365   1              write_data(table[0]);
+ 366   1              write_data(table[0]);
+ 367   1              write_data(' ');
+ 368   1              write_data(' ');
+ 369   1              write_data(' ');
+ 370   1              write_data(' ');
+ 371   1              write_data(' ');
+ 372   1              write_data(' ');
+ 373   1              write_data(' ');
+ 374   1              write_data(' ');
+ 375   1              write_data(' ');
+ 376   1              write_data(' ');
+ 377   1                              
+ 378   1              }
+ 379                  /******************************************
+ 380                               闹铃模块
+ 381                  ******************************************/
+ 382          void clock() 
+ 383          {
+ 384   1           if(sec2==sec)       //显判断秒的数值是否相等
+ 385   1             if(min2==min)     //是，在判断分是否相等
+ 386   1               if(hour2==hour) //是，再判断时是否相等
+ 387   1                 if(sec<6)
+ 388   1               {
+ 389   2                       ming=0;
+ 390   2                       
+ 391   2           }
+ 392   1              delay(500);
+ 393   1          ming=1;                                     
+ 394   1      }
+ 395          
+ 396          /*****************按键扫描程序****************/
+ 397          key()                                           
+ 398          {
+ 399   1              uchar temp;
+ 400   1              P2=0xf7;                                        //P3口连接行列式键盘的第四行,抬高P2的电平
+ 401   1              temp=P2;
+ 402   1              return(temp);
+ 403   1      } 
+ 404          
+ 405          /*****************按键执行子函数****************/                                                         
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                                        
+             -                                                                                                    
+ 406          void key_date()                                 //按键执行子函数
+ 407          {
+ 408   1              uchar num;              
+ 409   1              num=key();
+ 410   1              if(num==flaginc)                        //功能键的增加,按键后向左移动
+ 411   1              {
+ 412   2                      if(flag==8)
+ 413   2                      {
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 8   
+
+ 414   3                              flag=0;                         //若已移动7次，则回到起始位置    
+ 415   3                      }
+ 416   2                      else {flag++;}                  //否则再向左移动一位
+ 417   2              }
+ 418   1              if(num==flagdec)                        //功能键减，按键后向右移动
+ 419   1              {
+ 420   2                      if(flag==0)                             
+ 421   2                      {
+ 422   3                              flag=7;                         //若在起始位置，则到末位
+ 423   3                      }
+ 424   2                      else {flag--;}                  //否则再向右移动一位
+ 425   2              }
+ 426   1              if(num==keyinc)                         //参数增加
+ 427   1              {
+ 428   2                      uchar ktemp;
+ 429   2                      switch(flag)
+ 430   2                      {
+ 431   3                              case 1:ktemp=0;write_add(0x02,ktemp);break;     //将数写入秒的寄存器02H中
+ 432   3                              case 2:ktemp=read_add(0x03)&0x7f;                       //将读出的数写入分的寄存器03H中，范围最大为59
+ 433   3                              if(ktemp==0x59)
+ 434   3                              {ktemp=0x00;}
+ 435   3                              else 
+ 436   3                              {
+ 437   4                                      if(ktemp%16==0x09)
+ 438   4                                      {ktemp+=0x07;}
+ 439   4                                      else{ktemp++;}
+ 440   4                              }
+ 441   3                              write_add(0x03,ktemp);break;                             //将读出的数写入分的寄存器03H中
+ 442   3                              case 3:ktemp=read_add(0x04)&0x3f;                        //将读出的数写入小时的寄存器04H中，范围最大为59
+ 443   3                              if(ktemp==0x23)
+ 444   3                              {ktemp=0x00;}
+ 445   3                              else 
+ 446   3                              {
+ 447   4                                      if(ktemp%16==0x09)
+ 448   4                                      {ktemp+=0x07;}
+ 449   4                                      else{ktemp++;}
+ 450   4                              }
+ 451   3                              write_add(0x04,ktemp);break;                              //将数写入寄存器04H中
+ 452   3                              case 4:ktemp=read_add(0x06)&0x07;                 //将读出的数写入星期的寄存器06H中，有7个
+ 453   3                              if(ktemp==6)
+ 454   3                              {ktemp=0;}                                                                        //若已为第六个数，则下一个返回第一个
+ 455   3                              else {ktemp++;}                                                           //否则为加一为下一个
+ 456   3                              write_add(0x06,ktemp);break;                              //将数写入寄存器06H中
+ 457   3                              case 5:ktemp=read_add(0x05)&0x7f;                 //将读出的数写入天的寄存器05H中，范围最大31
+ 458   3                              if(ktemp==0x31)
+ 459   3                              {ktemp=0x00;}                                                             //若已为31，则返回0
+ 460   3                              else {if(ktemp%16==0x09){ktemp+=0x07;}ktemp++;}
+ 461   3                              write_add(0x05,ktemp);break;                               //将数写入寄存器05H中
+ 462   3                              case 6:ktemp=read_add(0x07)&0x7f;                          //将读出的数写入月份的寄存器07H中，范围最大为12
+ 463   3                              if(ktemp==0x12)
+ 464   3                              {ktemp=0x00;}                                                              //若已为12，则返回0
+ 465   3                              else {if(ktemp%16==0x09){ktemp+=0x07;}ktemp++;}
+ 466   3                              write_add(0x07,ktemp);break;                               //将读出的数写入寄存器07H中
+ 467   3                              case 7:ktemp=read_add(0x08);                               //将读出的数写入年的寄存器08H中
+ 468   3                              if(ktemp==0x99)
+ 469   3                              {ktemp=0x00;}                                                              //若已为99，则返回0
+ 470   3                              else {if(ktemp%16==0x09){ktemp+=0x07;}ktemp++;}
+ 471   3                              write_add(0x08,ktemp);break;                                    //将数写入寄存器08H中
+ 472   3                              default:break;
+ 473   3                      }
+ 474   2              }
+ 475   1              if(num==keydec)
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 9   
+
+ 476   1              {
+ 477   2                      uchar dtemp;
+ 478   2                      switch(flag)
+ 479   2                      {
+ 480   3                      case 1:dtemp=0;write_add(0x02,dtemp);break;
+ 481   3                      case 2:dtemp=read_add(0x03)&0x7f;
+ 482   3                                      if(dtemp==0x00){dtemp=0x59;}
+ 483   3                                      else {if(dtemp%16==0x00){dtemp-=7;}dtemp--;}
+ 484   3                                      write_add(0x03,dtemp);break;
+ 485   3                      case 3:dtemp=read_add(0x04)&0x3f;
+ 486   3                                      if(dtemp==0x00){dtemp=0x23;}
+ 487   3                                      else {if(dtemp%16==0x00){dtemp-=7;}dtemp--;}
+ 488   3                                      write_add(0x04,dtemp);break;
+ 489   3                      case 4:dtemp=read_add(0x06)&0x07;
+ 490   3                                      if(dtemp==0x00){dtemp=0x06;}
+ 491   3                                      else {dtemp--;}
+ 492   3                                      write_add(0x06,dtemp);break;
+ 493   3                      case 5:dtemp=read_add(0x05)&0x7f;
+ 494   3                                      if(dtemp==0x00){dtemp=0x31;}
+ 495   3                                      else {if(dtemp%16==0x00){dtemp-=7;}dtemp--;}
+ 496   3                                      write_add(0x05,dtemp);break;
+ 497   3                      case 6:dtemp=read_add(0x07)&0x7f;
+ 498   3                                      if(dtemp==0x00){dtemp=0x12;}
+ 499   3                                      else {if(dtemp%16==0x00){dtemp-=7;}dtemp--;}
+ 500   3                                      write_add(0x07,dtemp);break;
+ 501   3                      case 7:dtemp=read_add(0x08)&0xff;
+ 502   3                                      if(dtemp==0x00){dtemp=0x99;}
+ 503   3                                      else {if(dtemp%16==0x00){dtemp-=7;}dtemp--;}
+ 504   3                                      write_add(0x08,dtemp);break;
+ 505   3                      default:break;
+ 506   3                      }
+ 507   2                      
+ 508   2              }
+ 509   1      }
+ 510          
+ 511          /**************打铃*****************/
+ 512          void ring()              
+ 513          {
+ 514   1              
+ 515   1          flag1=0;                //是，则标志位，flag1清零
+ 516   1          while(!(flag1==1))      //判断flag1是否到100
+ 517   1         {
+ 518   2            ming=0;                //没有，则，继续驱动蜂鸣器响，时间约为：10s=50ms*200
+ 519   2            key_date();            //调用时间子函数
+ 520   2            display();             //调用显示子函数
+ 521   2                flag1++;   
+ 522   2         }
+ 523   1         ming=1;                   //关闭蜂鸣器 
+ 524   1      }
+ 525          
+ 526          /**********当时间早于24点且迟于1点时整点报时************/
+ 527          void baoshi()
+ 528           {      
+ 529   1          num=read_add(0x04);
+ 530   1              if(min==0&&sec<=num&&(hour<0x24)&&(hour>=0x00))           //当小时为大于等于0点小于24点时整点报时
+ 531   1              {
+ 532   2                      ming=0;
+ 533   2                      delay(800);
+ 534   2                      ming=1;
+ 535   2              }
+ 536   1       } 
+ 537          
+C51 COMPILER V9.02   时钟                                                                  06/04/2018 20:15:51 PAGE 10  
+
+ 538          /**********整点打铃************/
+ 539          void clock2()                                //打铃的程序
+ 540          {
+ 541   1        if((sec==0x00)&&(min==0x00))     ring();       //当分和秒的位置都是00时，打铃
+ 542   1      }
+ 543           
+ 544          
+ 545                  
+ 546          void main()    //主函数
+ 547          {
+ 548   1              init();
+ 549   1              while(1)
+ 550   1              {
+ 551   2                 switch((int)change )  //切换显示屏
+ 552   2                 {
+ 553   3                 case 1:
+ 554   3                         display();
+ 555   3                         key();                  
+ 556   3                         key_date();
+ 557   3                         read8563();
+ 558   3                         clock();
+ 559   3                 clock2();
+ 560   3                         baoshi();
+ 561   3                         break;
+ 562   3                      case 0:
+ 563   3                         display7();
+ 564   3                         key();
+ 565   3                         key_date();
+ 566   3                         break;
+ 567   3      
+ 568   3                 }
+ 569   2       }
+ 570   1      }
+ 571          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1973    ----
+   CONSTANT SIZE    =     63    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
